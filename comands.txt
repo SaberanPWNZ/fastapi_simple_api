@@ -1,0 +1,13 @@
+run server
+sudo service redis-server start
+redis-cli
+
+
+
+
+celery -A tasks.tasks:celery worker --loglevel=INFO --pool=solo
+
+celery -A tasks.tasks:celery flower
+
+
+alembic revision --autogenerate -m 'after'^C
