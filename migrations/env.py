@@ -5,10 +5,10 @@ from sqlalchemy import engine_from_config
 from sqlalchemy import pool
 from alembic import context
 
-
+from src.models.users_model import UserBase
 from src.items.models import ItemBase
-from src.auth.db_model import DataBase
-from src.user.users_model import UserBase
+from src.auth.db_helper import DataBase
+
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.

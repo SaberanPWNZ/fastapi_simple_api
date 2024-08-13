@@ -10,4 +10,6 @@ celery -A tasks.tasks:celery worker --loglevel=INFO --pool=solo
 celery -A tasks.tasks:celery flower
 
 
-alembic revision --autogenerate -m 'after'^C
+alembic revision --autogenerate -m 'after'
+
+$env:PYTHONPATH = "C:\Users\Saberan\PycharmProjects\API_PROMO\src"

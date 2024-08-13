@@ -1,11 +1,13 @@
 import uvicorn
 from fastapi import FastAPI
-from items.router import items_router, authentication
+
+from src.auth.auth import auth_router
+from src.items.router import items_router
 from tasks.tasks import startup_event
 
 app = FastAPI(lifespan=startup_event)
 app.include_router(items_router)
-app.include_router(authentication)
+app.include_router(auth_router)
 
 
 @app.get('/')

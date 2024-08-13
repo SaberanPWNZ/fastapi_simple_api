@@ -1,6 +1,6 @@
 from sqlalchemy import Integer, Float, String
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import Mapped, mapped_column
+#from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import Mapped, mapped_column, declarative_base
 
 ItemBase = declarative_base()
 
@@ -17,3 +17,4 @@ class Item(ItemBase):
     category: Mapped[str] = mapped_column(String, nullable=False)
     status: Mapped[str] = mapped_column(String, nullable=False, default='in stock')
     warranty: Mapped[int] = mapped_column(Integer, default=12)
+

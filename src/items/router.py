@@ -2,51 +2,25 @@ import logging
 
 from fastapi_cache.decorator import cache
 from fastapi import APIRouter, Depends, HTTPException
-
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, insert
-from auth.database import get_async_session, get_access_token_db
+from auth.auth import get_api_key
+from auth.database import get_async_session
+from items.docs import ItemRouterDocs
 from items.models import Item
-from items.schemas import ItemCreate, ItemResponse
-from fastapi_users import FastAPIUsers
-
-from auth.auth import auth_backend
-
-from auth.manager import get_user_manager
-from auth.schemas import UserRead, UserCreate
-
-from user.users_model import User, UserBase, AccessToken
+from items.schemas import ItemCreate, ItemResponse, ItemUpdate
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-authentication = APIRouter(prefix='/auth', tags=['auth'])
 items_router = APIRouter(
     prefix="/items",
-    tags=['Items']
+    tags=['Items'],
+    dependencies=[Depends(get_api_key)]
 )
 
-fastapi_users = FastAPIUsers[User, User.id](
-    get_user_manager,
-    [auth_backend],
-)
-
-authentication.include_router(
-    fastapi_users.get_auth_router(auth_backend),
-    prefix="/jwt",
-    tags=["auth"],
-)
-
-authentication.include_router(
-    fastapi_users.get_register_router(UserRead, UserCreate),
-    prefix="/auth",
-    tags=["auth"], )
-
-current_user = fastapi_users.current_user()
-current_user_token = fastapi_users.authenticator.current_user_token()
-
-
-@items_router.post('/create')
+#include_in_schema=False
+@items_router.post('/create', status_code=200)
 async def create_item(object: ItemCreate, session: AsyncSession = Depends(get_async_session)):
     try:
         stmt = insert(Item).values(**object.dict())
@@ -61,12 +35,36 @@ async def create_item(object: ItemCreate, session: AsyncSession = Depends(get_as
                             })
 
 
+@items_router.post('/update/{item_article}', status_code=200, summary=ItemRouterDocs.item_update_docs,
+                   description=ItemRouterDocs.item_update_message_format)
+async def update_item(item_article: str, item: ItemUpdate, session: AsyncSession = Depends(get_async_session)):
+    query = select(Item).where(Item.article == item_article.upper())
+    result = await session.execute(query)
+    item_to_update = result.scalars().first()
+
+    if not item_to_update:
+        raise HTTPException(status_code=404,
+                            detail={"status": 'error', "message": f'Item with article {item_article} not found'})
+    updated_fields = {}
+
+    for key, value in item.dict(exclude_unset=True).items():
+        if getattr(item_to_update, key) != value:
+            updated_fields[key] = value
+            setattr(item_to_update, key, value)
+
+    await session.commit()
+    logger.info(f"Item updated: {item_to_update}")
+
+    return {
+        'status': 'success',
+        'item': item_to_update.article,
+        'updated_fields': updated_fields
+    }
 @cache(expire=60)
-@items_router.get('/', response_model=list[ItemResponse], dependencies=[Depends(current_user_token)])
-async def get_all_items(session: AsyncSession = Depends(get_async_session),
-                        ):
+@items_router.get('/', status_code=200, response_model=list[ItemResponse], summary="get all items")
+async def get_all_items(session: AsyncSession = Depends(get_async_session)):
     try:
-        query = select(Item).where(Item.title == 'string')
+        query = select(Item)
         result = await session.execute(query)
         return result.scalars().all()
     except Exception as e:
