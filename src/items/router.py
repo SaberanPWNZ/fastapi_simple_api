@@ -20,7 +20,7 @@ items_router = APIRouter(
 )
 
 #include_in_schema=False
-@items_router.post('/create', status_code=200)
+@items_router.post('/create', status_code=201)
 async def create_item(object: ItemCreate, session: AsyncSession = Depends(get_async_session)):
     try:
         stmt = insert(Item).values(**object.dict())
@@ -32,6 +32,7 @@ async def create_item(object: ItemCreate, session: AsyncSession = Depends(get_as
         raise HTTPException(status_code=500,
                             detail={
                                 'status': 'error',
+                                'detail': str(e)
                             })
 
 

@@ -7,7 +7,7 @@ from fastapi import APIRouter
 
 from src.auth.api_key import generate_api_key, default_expiry_date
 from src.auth.database import get_async_session
-from src.auth.schemas import UserCreate, UserRead
+from src.auth.schemas import UserCreate
 from src.models.schemas import AccessTokenRead
 from src.models.users_model import User, AccessToken
 
@@ -18,7 +18,7 @@ api_key_header = APIKeyHeader(name='Access_token', auto_error=False)
 async def get_api_key(
         session: AsyncSession = Depends(get_async_session),
         api_key_header: str = Security(api_key_header),
-):
+) -> object:
     stmt = select(AccessToken).where(AccessToken.api_token == api_key_header)
     result = await session.execute(stmt)
     tokens = result.scalars().all()
@@ -31,7 +31,7 @@ async def get_api_key(
         )
 
 
-@auth_router.post('/create', response_model=AccessTokenRead)
+@auth_router.post('', response_model=AccessTokenRead, status_code=201)
 async def user_register(user: UserCreate, session: AsyncSession = Depends(get_async_session)):
     try:
         existing_user = await session.execute(
@@ -68,10 +68,9 @@ async def user_register(user: UserCreate, session: AsyncSession = Depends(get_as
 
         return AccessTokenRead(**token_data)
 
-
     except Exception as e:
         print(e)
         raise HTTPException(
             status_code=400,
-            detail={'status': 'error', 'message': 'An error occurred'}
+            detail={'status': 'error', 'message': 'bad request'}
         )
